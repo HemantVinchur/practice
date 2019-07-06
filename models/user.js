@@ -8,8 +8,8 @@ let userSchema = new Schema({
     firstName: String,
     lastName: String,
     email: String,
-    countryCode: Number,
-    contactNo: Number,
+    countryCode: String,
+    contactNo: String,
     password: String,
     salt: String,
     createdAt: { type: Date, default: Date.now() }

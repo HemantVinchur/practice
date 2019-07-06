@@ -1,177 +1,65 @@
 const router = require('express').Router();
-const validator = require('../validator');
-const userModel = require('../models/User');
-const celebrate = require('celebrate');
-const mongodb = require('mongodb');
+const { celebrate, Joi } = require('celebrate');
+const jwt = require('jsonwebtoken');
+
 const functions = require('../functions');
-const jwt = require('jsonwebtoken')
-//Register
-router.post('/register', validator.userValidator.registerReqValidator, (req, res) => {
 
-    let payload = req.body;
-    userModel.findOne({ email: payload.email })
-        .then((donardata) => {
-            if (donardata) {
-                return res.status(200).json({
-                    statuscode: 400,
-                    message: "User already exits",
-                    data: {}
-                })
-            }
-            let hashObj = functions.hashPassword(payload.password);
-            console.log(hashObj)
-            delete payload.password
-            payload.salt = hashObj.salt;
-            payload.password = hashObj.hash;
+const register = require('../models/user');
+const validator = require('../validator/userValidator');
+const services = require('../services/userServices');
 
-            userModel.create(payload)
-                .then((data) => {
-                    return res.status(200).json({
-                        statuscode: 200,
-                        message: "Success",
-                        data: data
-                    })
-                }).catch((error) => {
-                    console.error(error);
-                    return res.status(200).json({
-                        statusCode: 400,
-                        message: "Something went wrong",
-                        data: {}
-                    })
-                })
-        }).catch((error) => {
-            console.error(error);
-            return res.status(200).json({
-                statusCode: 400,
-                message: "Something went wrong",
-                data: {}
-            })
-        })
-});
 
-//Login
-router.post('/login', (req, res) => {
-    try {
-        let payload = req.body;
-        userModel.findOne({ email: payload.email }, (error, data) => {
-            if (error) {
-                console.error(error);
-                return res.json({
-                    statusCode: 400,
-                    message: "Something went wrong",
-                    data: {}
-                })
-            }
-            if (!data) {
-                return res.status(200).json({
-                    statusCode: 400,
-                    message: "User not found",
-                    data: {}
-                })
-            }
-              let isPasswordValidate = functions.validatePassword(data.salt, payload.password, data.password);
-              console.log(isPasswordValidate);
-              if (!isPasswordValidate) {
-                  return res.status(200).json({
-                      statusCode: 400,
-                      message: "Invalid email or password",
-                      data: {}
-                  })
-              }
-
-             let token = jwt.sign({ email: payload.email },'s3cr3t');
-             console.log(token)
-             return res.status(200).json({
-                 statusCode: 200,
-                 message: "Login successful",
-                 data: data
-             })
-     })
-    } catch (error) {
-        res.json({
-            statusCode: 400,
-            message: "Something went wrong",
-            data: {}
-        })
-    }
+//registration
+router.post('/register', validator.registerReqValidator, (req, res) => {
+    services.userRegister(req, res);
 })
 
-//Tokens
+//login
+ 
+router.post('/login', validator.loginReqValidator, (req, res) => {
+    services.userLogin(req, res);
+
+})
+
+//token
 
 router.get('/', (req, res, next) => {
+    console.log('111111')
     let token = req.headers.authorization.split(' ')[1];
     console.log(token);
-    jwt.verify(token, 's3cr3t', (error, decoded) => {
-        if (error) {
+    jwt.verify(token, 's3cr3t', (err, decoded) => {
+        console.log('22')
+        if (err) {
+            console.log(err)
             throw error;
         }
         console.log(decoded);
     })
     return res.json({
-        statusCode:200,
-        message:"Hello",
-        data:token
+        statusCode: 200,
+        message: "hello",
+        data: token
+    });
 })
-})
-router.put('/update/:id', (req, res) => {
-    let payload = req.body;
-    try {
-        userModel.findOne({ email: payload.email }, (error, data) => {
-            userModel.updateOne(
-                {
-                    email: payload.email
-                },
-                {
-                    firstName: payload.firstName,
-                    lastName: payload.lastName,
-                    email: payload.email,
-                    countryCode: payload.countryCode,
-                    contactNo: payload.contactNo,
-                    password: payload.password
 
-                },
-                (error, data) => {
-                    if (error) {
-                        res.status(400).json({
-                            statusCode: 400,
-                            message: "user not found",
-                            data: {}
-                        })
-                    }
-                    return res.status(200).json({
-                        statusCode: 200,
-                        message: "Successful",
-                        data: data
-                    })
-                })
-        })
-    } catch (error) {
 
-        res.status(200).json({
-            statusCode: 400,
-            message: "Something went wrong"
-        })
-    }
+//update user
+
+router.put('/update', (req, res) => {
+    services.userUpdate(req, res);
 })
+
+
+//delete user
 
 router.delete('/delete', (req, res) => {
-    let payload = req.body;
-    try {
-        userModel.remove({ email: payload.email }, (error, results) => {
-            if (error) {
-                return next(error)
-                res.send(results)
-            }
-            else {
-                res.send("Successfully deleted")
-            }
-        })
-    } catch (error) {
-        res.status(200).json({
-            statusCode: 400,
-            message: "Something went wrong",
-            data: {}
-        })
-    }
+    services.userDelete(req, res);
 })
-module.exports = router; 
+
+//get data
+
+router.get('/get', (req, res) => {
+    services.userGet(req, res);
+})
+
+module.exports = router;

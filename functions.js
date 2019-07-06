@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-
+const jwt = require('jsonwebtoken');
 const hashPassword = (password) => {
     let obj = {};
     obj.salt = crypto.randomBytes(16).toString('hex');
@@ -12,7 +12,21 @@ const validatePassword = (salt, password, hashPassword) => {
     return hash === hashPassword;
 }
 
+const authenticate = (token) => {
+    return new Promise((resolve, reject) => {
+        jwt.verify(token,'s3cr3t', (error, decoded) => {
+            if (error) {
+                console.error(error);
+                reject(error);
+            }
+            resolve(decoded);
+        });
+    });
+}
+
+
 module.exports = {
     hashPassword,
-    validatePassword
+    validatePassword,
+    authenticate
 }
